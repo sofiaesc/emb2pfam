@@ -1,0 +1,21 @@
+{
+    "window_len": 32,
+    "label_win_len": 32,
+    "lr": 1e-04,
+    "batch_size": 32,
+    "nepoch": 500,
+    "patience": 10,
+    "nworkers": 8,
+    "only_seeds": true,
+    "model": 0,
+    "continue_training": false,
+    "soft_max": false,
+    "step": 4,
+    "minscore": 0.0,
+    "th": 0.0,
+    "use_medfilt": true,
+    "data_path": "data/minidataset/",
+    "emb_path": "/home/rvitale/fulldataset_lt1024AA/embeddings_esm2/",
+    "scoreArea": true,
+    "scoreCoverage": true
+}
