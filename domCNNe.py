@@ -4,6 +4,7 @@ import os
 import json
 from domCNN import domCNN
 from dataset import PFamDataset
+from sklearn.metrics import f1_score
 
 class domCNNe(nn.Module):
     def __init__(self, models_path, emb_path, data_path, cat_path, voting_method):
@@ -148,23 +149,17 @@ class domCNNe(nn.Module):
                     is_training=False
                 )
                 dev_loader = tr.utils.data.DataLoader(dev_data, batch_size=config['batch_size'], num_workers=1)
-                
-                correct_counts = tr.zeros(len(self.categories))
-                total_counts = tr.zeros(len(self.categories))
 
                 with tr.no_grad():
                     _, _, pred, ref, _, _, _, _, _ = net.pred(dev_loader)
-                    pred_classes = tr.argmax(pred, dim=1)
-                    ref_classes = tr.argmax(ref, dim=1)
+                    pred_classes = tr.argmax(pred, dim=1).cpu().numpy()
+                    ref_classes = tr.argmax(ref, dim=1).cpu().numpy()
 
-                    for cat_idx in range(len(self.categories)):
-                        mask = ref_classes == cat_idx
-                        correct_counts[cat_idx] = tr.sum(pred_classes[mask] == cat_idx)
-                        total_counts[cat_idx] = tr.sum(mask)
+                    f1_scores = f1_score(ref_classes, pred_classes, average=None, labels=list(range(len(self.categories))))
 
-                self.family_weights[i] = correct_counts / total_counts
+                self.family_weights[i] = tr.tensor(f1_scores)
 
-            print('Final family weights based on accuracy:', self.family_weights)
+            print('Final family weights based on F1 score:', self.family_weights)
 
     def pred(self):
         all_preds = []
