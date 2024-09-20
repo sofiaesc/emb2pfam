@@ -1,10 +1,10 @@
 {
     "window_len": 32,
     "label_win_len": 32,
-    "lr": 1e-03,
+    "lr": 1e-04,
     "batch_size": 32,
     "nepoch": 500,
-    "patience": 10,
+    "patience": 5,
     "nworkers": 8,
     "only_seeds": true,
     "model": 0,
@@ -14,8 +14,8 @@
     "minscore": 0.0,
     "th": 0.0,
     "use_medfilt": true,
-    "data_path": "data/minidataset/",
-    "emb_path": "/home/rvitale/fulldataset_lt1024AA/embeddings_esm2/",
+    "data_path": "/media/DATOS/pfam32/full/",
+    "emb_path": "/media/DATOS/pfam32/embeddings/esm2/",
     "scoreArea": true,
     "scoreCoverage": true
 }
