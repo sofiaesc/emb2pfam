@@ -4,7 +4,6 @@ import os
 import json
 from domCNN import domCNN
 from dataset import PFamDataset
-from sklearn.metrics import f1_score
 
 class domCNNe(nn.Module):
     def __init__(self, models_path, emb_path, data_path, cat_path, voting_method):
@@ -53,20 +52,14 @@ class domCNNe(nn.Module):
             model.eval()
             self.models.append(model)
         
-        if self.voting_method == 'weighted_mean':
+        if self.voting_method in ['weighted_mean','all']:
             self.model_weights = nn.Parameter(tr.rand(len(model_dirs)))
-
-        if self.voting_method == 'weighted_families':
+        if self.voting_method in ['weighted_families','all']:
             self.family_weights = nn.Parameter(tr.rand(len(model_dirs), len(categories)))
 
-        if self.voting_method == 'weighted_families_f1':
-            self.family_weights = tr.zeros(len(self.models), len(self.categories))
-
     def fit(self):
-        if self.voting_method == 'weighted_mean':
-            criterion = nn.CrossEntropyLoss()
+        if self.voting_method in ['weighted_mean', 'weighted_families', 'all']:
             all_preds = []
-            
             for i, net in enumerate(self.models):
                 config = self.model_configs[i]
                 dev_data = PFamDataset(
@@ -85,9 +78,11 @@ class domCNNe(nn.Module):
                     all_preds.append(pred)
             stacked_preds = tr.stack(all_preds)
 
+        if self.voting_method in ['weighted_mean', 'all']:
+            criterion = nn.CrossEntropyLoss()
             optimizer = tr.optim.Adam([self.model_weights], lr=0.01)
 
-            for epoch in range(200):
+            for epoch in range(500):
                 pred_avg = tr.sum(stacked_preds * self.model_weights.view(-1, 1, 1), dim=0)
                 loss = criterion(pred_avg, tr.argmax(ref, dim=1))
 
@@ -97,32 +92,21 @@ class domCNNe(nn.Module):
 
                 print(f'Epoch {epoch+1}, Loss: {loss.item()}')
 
-            print('Final model weights:', self.model_weights)
+            if self.voting_method == 'all':
+                pred_mean = tr.argmax(tr.mean(stacked_preds, dim=0), dim=1)
+                pred_weighted_mean = tr.argmax(pred_avg, dim=1)
+                self.final_preds = {
+                    'mean': pred_mean,
+                    'weighted_mean': pred_weighted_mean
+                }
+            else:
+                print('Final model weights:', self.model_weights)
 
-        elif self.voting_method == 'weighted_families':
+        if self.voting_method in ['weighted_families', 'all']:
             criterion = nn.CrossEntropyLoss()
-            all_preds = []
-            
-            for i, net in enumerate(self.models):
-                config = self.model_configs[i]
-                dev_data = PFamDataset(
-                    f"{self.data_path}dev.csv",
-                    self.emb_path,
-                    self.categories,
-                    win_len=config['win_len'],
-                    label_win_len=config['label_win_len'],
-                    only_seeds=config['only_seeds'],
-                    is_training=False
-                )
-                dev_loader = tr.utils.data.DataLoader(dev_data, batch_size=config['batch_size'], num_workers=1)
-
-                with tr.no_grad():
-                    _, _, pred, ref, _, _, _, _, _ = net.pred(dev_loader)
-                    all_preds.append(pred)
-            stacked_preds = tr.stack(all_preds)
-
             optimizer = tr.optim.Adam([self.family_weights], lr=0.01)
-            for epoch in range(200):
+
+            for epoch in range(500):
                 pred_avg = tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
                 loss = criterion(pred_avg, tr.argmax(ref, dim=1))
 
@@ -133,31 +117,6 @@ class domCNNe(nn.Module):
                 print(f'Epoch {epoch+1}, Loss: {loss.item()}')
 
             print('Final family weights:', self.family_weights)
-
-        elif self.voting_method == 'weighted_families_f1':
-            for i, net in enumerate(self.models):
-                config = self.model_configs[i]
-                dev_data = PFamDataset(
-                    f"{self.data_path}dev.csv",
-                    self.emb_path,
-                    self.categories,
-                    win_len=config['win_len'],
-                    label_win_len=config['label_win_len'],
-                    only_seeds=config['only_seeds'],
-                    is_training=False
-                )
-                dev_loader = tr.utils.data.DataLoader(dev_data, batch_size=config['batch_size'], num_workers=1)
-
-                with tr.no_grad():
-                    _, _, pred, ref, _, _, _, _, _ = net.pred(dev_loader)
-                    pred_classes = tr.argmax(pred, dim=1).cpu().numpy()
-                    ref_classes = tr.argmax(ref, dim=1).cpu().numpy()
-
-                    f1_scores = f1_score(ref_classes, pred_classes, average=None, labels=list(range(len(self.categories))))
-
-                self.family_weights[i] = tr.tensor(f1_scores)
-
-            print('Final family weights based on F1 score:', self.family_weights)
 
     def pred(self):
         all_preds = []
@@ -184,23 +143,23 @@ class domCNNe(nn.Module):
 
         stacked_preds = tr.stack(all_preds)
 
-        if self.voting_method == 'mean':
-            pred_avg = tr.mean(stacked_preds, dim=0)
-            pred_avg_bin = tr.argmax(pred_avg, dim=1)
+        # Calculate predictions for each method
+        if self.voting_method == 'all':
+            pred_mean = tr.argmax(tr.mean(stacked_preds, dim=0), dim=1)
+            pred_weighted_mean = tr.argmax(tr.sum(stacked_preds * self.model_weights.view(-1, 1, 1), dim=0), dim=1)
+            pred_weighted_fam = tr.argmax(tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0), dim=1)
+            pred_majority = tr.mode(tr.argmax(stacked_preds, dim=2), dim=0)[0]
+            return pred_mean, pred_weighted_mean, pred_weighted_fam, pred_majority
+        elif self.voting_method == 'mean':
+            pred_mean = tr.argmax(tr.mean(stacked_preds, dim=0), dim=1)
+            return pred_mean
         elif self.voting_method == 'weighted_mean':
-            pred_avg = tr.sum(stacked_preds * self.model_weights.view(-1, 1, 1), dim=0)
-            pred_avg_bin = tr.argmax(pred_avg, dim=1)
+            pred_weighted_mean = tr.argmax(tr.sum(stacked_preds * self.model_weights.view(-1, 1, 1), dim=0), dim=1)
+            return pred_weighted_mean
         elif self.voting_method == 'weighted_families':
-            pred_avg = tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
-            pred_avg_bin = tr.argmax(pred_avg, dim=1)
-        elif self.voting_method == 'weighted_families_f1':
-            pred_avg = tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
-            pred_avg_bin = tr.argmax(pred_avg, dim=1)
+            pred_weighted_fam = tr.argmax(tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0), dim=1)
+            return pred_weighted_fam
         elif self.voting_method == 'majority':
-            pred_bin = tr.argmax(stacked_preds, dim=2)
-            pred_avg_bin = tr.mode(pred_bin, dim=0)[0]
-        else:
-            raise ValueError(f"Unknown voting method: {self.voting_method}")
-
-        return pred_avg_bin
+            pred_majority = tr.mode(tr.argmax(stacked_preds, dim=2), dim=0)[0]
+            return pred_majority
 

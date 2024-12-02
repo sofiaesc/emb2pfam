@@ -9,23 +9,21 @@ import shutil
 import json
 import os
 
-out_path_base = "results/win128_out128_1e-05_2024-07-16-21:42:42.104787/"
+out_path_base = "ensembles/models/fulldataset_win32_out32_1e-4"
 
 # save a copy of this script 
 script_filename = os.path.basename(sys.argv[0])
 shutil.copyfile(sys.argv[0], os.path.join(out_path_base, script_filename)) 
 
 # copy the base config file to the output directory
-base_config_path = "config/base.json"
-train_config_path = os.path.join(out_path_base, "train_config.json")
-shutil.copyfile(base_config_path, train_config_path)
+train_config_path = os.path.join(out_path_base, "config.json")
 
 # set training parameters
 with open(train_config_path,'r') as config_file:     # opens the config file
     config_data = json.load(config_file)
 
-steps = [2,4,8,12,24]
-softmax_values = [True, False]
+steps = [4]
+softmax_values = [True]
 
 for softmax in softmax_values:  # varying softmax
     config_data['soft_max'] = softmax

@@ -5,6 +5,7 @@ import json
 from domCNN import domCNN
 from dataset import PFamDataset
 from sklearn.metrics import f1_score
+import matplotlib.pyplot as plt
 
 class domCNNe(nn.Module):
     def __init__(self, models_path, emb_path, data_path, cat_path, voting_method):
@@ -101,8 +102,10 @@ class domCNNe(nn.Module):
 
         elif self.voting_method == 'weighted_families':
             criterion = nn.CrossEntropyLoss()
-            all_preds = []
+            all_dev_preds = []
+            all_test_preds = []
             
+            # Datos de validación (dev)
             for i, net in enumerate(self.models):
                 config = self.model_configs[i]
                 dev_data = PFamDataset(
@@ -117,22 +120,71 @@ class domCNNe(nn.Module):
                 dev_loader = tr.utils.data.DataLoader(dev_data, batch_size=config['batch_size'], num_workers=1)
 
                 with tr.no_grad():
-                    _, _, pred, ref, _, _, _, _, _ = net.pred(dev_loader)
-                    all_preds.append(pred)
-            stacked_preds = tr.stack(all_preds)
+                    _, _, dev_pred, dev_ref, _, _, _, _, _ = net.pred(dev_loader)
+                    all_dev_preds.append(dev_pred)
+            stacked_dev_preds = tr.stack(all_dev_preds)
+
+            # Datos de prueba (test)
+            for i, net in enumerate(self.models):
+                config = self.model_configs[i]
+                test_data = PFamDataset(
+                    f"{self.data_path}test.csv",
+                    self.emb_path,
+                    self.categories,
+                    win_len=config['win_len'],
+                    label_win_len=config['label_win_len'],
+                    only_seeds=config['only_seeds'],
+                    is_training=False
+                )
+                test_loader = tr.utils.data.DataLoader(test_data, batch_size=config['batch_size'], num_workers=1)
+
+                with tr.no_grad():
+                    _, _, test_pred, test_ref, _, _, _, _, _ = net.pred(test_loader)
+                    all_test_preds.append(test_pred)
+            stacked_test_preds = tr.stack(all_test_preds)
 
             optimizer = tr.optim.Adam([self.family_weights], lr=0.01)
-            for epoch in range(200):
-                pred_avg = tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
-                loss = criterion(pred_avg, tr.argmax(ref, dim=1))
+            dev_error_values = []
+            test_error_values = []
 
+            for epoch in range(1000):
+                # Predicción y pérdida en dev
+                dev_pred_avg = tr.sum(stacked_dev_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
+                dev_loss = criterion(dev_pred_avg, tr.argmax(dev_ref, dim=1))
+
+                dev_accuracy = tr.sum(tr.argmax(dev_pred_avg, dim=1) == tr.argmax(dev_ref, dim=1)).item() / len(dev_ref)
+                dev_error = 1 - dev_accuracy
+                dev_error_values.append(dev_error)
+
+                # Predicción y pérdida en test
+                test_pred_avg = tr.sum(stacked_test_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
+                test_loss = criterion(test_pred_avg, tr.argmax(test_ref, dim=1))
+
+                test_accuracy = tr.sum(tr.argmax(test_pred_avg, dim=1) == tr.argmax(test_ref, dim=1)).item() / len(test_ref)
+                test_error = 1 - test_accuracy
+                test_error_values.append(test_error)
+
+                # Actualizar pesos de las familias
                 optimizer.zero_grad()
-                loss.backward()
+                dev_loss.backward()
                 optimizer.step()
 
-                print(f'Epoch {epoch+1}, Loss: {loss.item()}')
+                print(f'Epoch {epoch+1}, Dev Error: {dev_error:.5f}, Test Error: {test_error:.5f}')
 
             print('Final family weights:', self.family_weights)
+
+            # Graficar Dev Error y Test Error
+            plt.figure(figsize=(10, 6))
+            plt.plot(dev_error_values, label='Dev Error', color='blue', linewidth=2)
+            plt.plot(test_error_values, label='Test Error', color='magenta', linewidth=2)
+            plt.xlabel('Epoch')
+            plt.ylabel('Error')
+            plt.title('Dev and Test Error over Epochs')
+            plt.legend()
+            plt.grid(True)
+            plt.ylim(0, 0.3)
+            plt.savefig('error_plot.png', dpi=300)
+            plt.close()
 
         elif self.voting_method == 'weighted_families_f1':
             for i, net in enumerate(self.models):

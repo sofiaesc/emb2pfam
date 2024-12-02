@@ -9,9 +9,9 @@ from dataset import PFamDataset
 
 # parameters:
 models_path = 'ensembles/models/'
-emb_path = '/home/compartido/embeddings/'
-data_path = 'data/minidataset/'
-cat_path = 'data/minidataset/categories.txt'
+emb_path = "/home/rvitale/pfam32/embeddings/esm2/"
+data_path = "/home/rvitale/pfam32/full/"
+cat_path = '/home/rvitale/pfam32/full/categories.txt'
 voting_method = 'weighted_mean'  # 'mean', 'weighted_mean', 'majority'
 
 LABEL_WIN_LEN = 32

@@ -4,6 +4,7 @@ import json
 import shutil
 import argparse
 import sys
+import time  # Step 1: Import the time module
 
 from torch.utils.data import DataLoader
 from dataset import PFamDataset
@@ -26,8 +27,6 @@ with open(args.config, 'r') as f:
     config = json.load(f)
 
 config_path = os.path.join(args.output, 'config.json')
-# this is part of the experimental setup, not the model training
-# shutil.copyfile(args.config, config_path) # save configuration file to results folder
 
 categories = [line.strip() for line in open(f"{config['data_path']}categories.txt")]
 DEVICE = "cuda"
@@ -52,7 +51,6 @@ if os.path.exists(filename):
     if config['continue_training'] == True:         # if we want to continue training from before.
         print(f"Loading model from {filename}")
         net.load_state_dict(tr.load(filename))
-        #net = tr.load(filename)
         with open(summary, 'r') as s:
             last_sum = s.readlines()[-1].split(',')
             INIT_EP  = int(last_sum[0])+1
@@ -66,17 +64,18 @@ if os.path.exists(filename):
             os.remove(summary)
             print("Previous model deleted successfully. Starting training...")
             with open(summary, 'w') as s:               
-                s.write("Ep,Train loss,Dev Loss,Dev error,Best error,Counter\n")
+                s.write("Ep,Train loss,Dev Loss,Dev error,Best error,Counter,Epoch time (s)\n")  # Updated header
                 INIT_EP, counter, best_err = 0, 0, 999.0
         else:
             print("Deletion aborted. Set 'continue_traning' parameter to 'True' in config.json if you want to continue training an already existing model.")
             sys.exit()
 else:   # if the path didn't exist, there was no previous training so it starts anew.
     with open(summary, 'w') as s:
-        s.write("Ep,Train loss,Dev Loss,Dev error,Best error,Counter\n")
+        s.write("Ep,Train loss,Dev Loss,Dev error,Best error,Counter,Epoch time (s)\n")  # Updated header
         INIT_EP, counter, best_err = 0, 0, 999.0
 
 for epoch in range(INIT_EP, config['nepoch']):
+    start_time = time.time()  # Step 2: Record the start time
 
     train_loss = net.fit(train_loader)
     dev_loss, dev_err, _, _, _, _, _, _, _ = net.pred(dev_loader)
@@ -92,10 +91,13 @@ for epoch in range(INIT_EP, config['nepoch']):
         counter += 1
         sv_mod=f" - EPOCH {counter} of {config['patience']}"
 
+    epoch_time = time.time() - start_time  # Step 3: Record the end time and calculate duration
+
     print_msg=f"{epoch}: train loss {train_loss:.3f}, dev loss {dev_loss:.3f}, dev err {dev_err:.3f}"
-    print(print_msg+sv_mod)
+    print(print_msg + sv_mod + f" - Time: {epoch_time:.2f}s")  # Optional: Print epoch time
 
     with open(summary, 'a') as s:
-        s.write(f"{epoch},{train_loss},{dev_loss},{dev_err},{best_err},{counter}\n")
+        s.write(f"{epoch},{train_loss},{dev_loss},{dev_err},{best_err},{counter},{epoch_time:.2f}\n")  # Step 4: Save the epoch time
+
         if counter >= config['patience']:
-             break
+            break

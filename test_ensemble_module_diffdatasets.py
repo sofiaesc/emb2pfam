@@ -4,15 +4,15 @@ from tqdm import tqdm
 import torch as tr
 
 from torch.utils.data import DataLoader
-from domCNNe import domCNNe
+from domCNNe_errors_fam import domCNNe
 from dataset import PFamDataset
 
 # parameters:
 models_path = 'ensembles/models/'
-emb_path = '/home/compartido/embeddings/'
-data_path = 'data/minidataset/'
-cat_path = 'data/minidataset/categories.txt'
-voting_method = 'weighted_families_acc'  # 'mean', 'weighted_mean', 'weighted_families, 'weighted_families_acc', 'majority'
+emb_path = "/home/rvitale/pfam32/embeddings/esm2/"
+data_path = "/home/rvitale/pfam32/full/"
+cat_path = '/home/rvitale/pfam32/full/categories.txt'
+voting_method = 'weighted_families'  # 'mean', 'weighted_mean', 'weighted_families, 'majority'
 
 LABEL_WIN_LEN = 32
 BATCH_SIZE = 32
