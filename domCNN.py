@@ -98,7 +98,6 @@ class domCNN(nn.Module):
 
         #self.scheduler.step(test_loss)
 
-
         acc = accuracy_score(ref_bin, pred_bin)
         if self.logger is not None:
             self.logger.add_scalar("Loss/dev", test_loss, self.dev_steps)

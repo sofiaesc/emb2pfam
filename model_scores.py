@@ -65,7 +65,7 @@ for pid in tqdm(dataset.PID.unique()):
     centers, pred = predict(net, emb, config['window_len'], use_softmax=config['soft_max'], step=config['step'])
 
     # Keep only classes that have the maximum softmax score > TH (0.1)
-    ind = tr.where(pred.max(dim=0)[0] > 0.1)[0]
+    ind = tr.where(pred.max(dim=0)[0] > 0.3)[0]
     scores_comp = pred[:, ind]
 
     if config['use_medfilt']:

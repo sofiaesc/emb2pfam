@@ -4,7 +4,7 @@ from tqdm import tqdm
 import torch as tr
 
 from torch.utils.data import DataLoader
-from domCNNe_errors_fam import domCNNe
+from domCNNe_original import domCNNe
 from dataset import PFamDataset
 
 # parameters:
@@ -12,7 +12,7 @@ models_path = 'ensembles/models/'
 emb_path = "/home/rvitale/pfam32/embeddings/esm2/"
 data_path = "/home/rvitale/pfam32/full/"
 cat_path = '/home/rvitale/pfam32/full/categories.txt'
-voting_method = 'weighted_families'  # 'mean', 'weighted_mean', 'weighted_families, 'majority'
+voting_method = 'majority'  # 'mean', 'weighted_mean', 'weighted_families, 'majority'
 
 LABEL_WIN_LEN = 32
 BATCH_SIZE = 32
@@ -22,7 +22,9 @@ ONLY_SEEDS = True
 # initializing ensemble instance
 ensemble = domCNNe(models_path, emb_path, data_path, cat_path, voting_method)
 ensemble.fit()
-pred_avg_bin = ensemble.pred()
+pred, pred_avg_bin = ensemble.pred()
+print(pred.size())
+print(pred_avg_bin.size())
 
 # obtaining references to compare with prediction for score
 with open(cat_path, 'r') as f:

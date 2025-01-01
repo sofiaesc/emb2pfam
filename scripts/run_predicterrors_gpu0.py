@@ -9,7 +9,7 @@ import shutil
 import json
 import os
 
-out_path_base = "ensembles/models/win128_out128_2e-04_2024-11-09-15:35:57.734560"
+out_path_base = "ensembles/models/win128_out128_3e-04_2024-11-04-06:18:26.314787"
 
 # save a copy of this script 
 script_filename = os.path.basename(sys.argv[0])
@@ -22,7 +22,7 @@ train_config_path = os.path.join(out_path_base, "config.json")
 with open(train_config_path,'r') as config_file:     # opens the config file
     config_data = json.load(config_file)
 
-steps = [8]
+steps = [4]
 softmax_values = [False]
 
 for softmax in softmax_values:  # varying softmax
