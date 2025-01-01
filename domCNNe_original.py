@@ -4,6 +4,7 @@ import os
 import json
 from domCNN import domCNN
 from dataset import PFamDataset
+from sklearn.metrics import f1_score
 
 class domCNNe(nn.Module):
     def __init__(self, models_path, emb_path, data_path, cat_path, voting_method):
@@ -130,26 +131,18 @@ class domCNNe(nn.Module):
 
             print('Final family weights:', self.family_weights)
 
-    def pred(self):
+    def forward(self, batch):
+        pred, _ = self.pred(batch)
+        return pred
+
+    def pred(self, batch):
         all_preds = []
         for i, net in enumerate(self.models):
             config = self.model_configs[i]
-            test_data = PFamDataset(
-                f"{self.data_path}test.csv",
-                self.emb_path,
-                self.categories,
-                win_len=config['win_len'],
-                label_win_len=config['label_win_len'],
-                only_seeds=config['only_seeds'],
-                is_training=False
-            )
-            test_loader = tr.utils.data.DataLoader(test_data, batch_size=config['batch_size'], num_workers=1)
-
             net_preds = []
             with tr.no_grad():
-                test_loss, test_errate, pred, _, _, _, _, _, _ = net.pred(test_loader)
+                pred = net(batch).cpu().detach()
                 net_preds.append(pred)
-            print(f"win_len = {config['win_len']} - label_win_len = {config['label_win_len']} - lr = {config['lr']} - test_loss {test_loss:.5f} - test_errate {test_errate:.5f}")
             net_preds = tr.cat(net_preds)
             all_preds.append(net_preds)
 
@@ -165,8 +158,9 @@ class domCNNe(nn.Module):
             pred = tr.sum(stacked_preds * self.family_weights.view(len(self.models), 1, len(self.categories)), dim=0)
             pred_bin = tr.argmax(pred, dim=1)
         elif self.voting_method == 'majority':
-            pred_bin = tr.mode(tr.argmax(stacked_preds, dim=2), dim=0)[0]
-            pred = tr.nn.functional.one_hot(pred_bin, num_classes=len(self.categories)).float()
+            pred_classes = tr.mode(tr.argmax(stacked_preds, dim=2), dim=0)[0]
+            pred = tr.nn.functional.one_hot(pred_classes, num_classes=len(self.categories)).float()
+            pred_bin = tr.argmax(pred, dim=1)
         else:
             raise ValueError(f"Unknown voting method: {self.voting_method}")
 
