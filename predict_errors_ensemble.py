@@ -4,13 +4,18 @@ import pandas as pd
 import json
 import pickle
 import numpy as np
+import argparse
 from tqdm import tqdm
 from scipy.signal import medfilt
 from utils import predict
 from domCNN import domCNN
 from domCNNe import domCNNe  
 
-output_path = 'ensembles/ensemble_weighted_families2/'
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--method", type=str, help="Voting method.")
+args = parser.parse_args()
+
+output_path = f'ensembles/ensemble_{args.method}/'
 if not os.path.exists(output_path):
     os.makedirs(output_path)
 
@@ -25,7 +30,7 @@ models_path = 'ensembles/models/'
 emb_path = "/home/rvitale/pfam32/embeddings/esm2/"
 data_path = "/home/rvitale/pfam32/full/"
 cat_path = '/home/rvitale/pfam32/full/categories.txt'
-voting_method = 'weighted_families'  # 'mean', 'weighted_mean', 'weighted_families', 'majority', 'all'
+voting_method = args.method  # 'mean', 'weighted_mean', 'weighted_families', 'majority'
 ensemble_model = domCNNe(models_path, emb_path, data_path, cat_path, voting_method)
 ensemble_model.fit()
 

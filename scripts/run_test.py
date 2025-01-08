@@ -9,7 +9,7 @@ import shutil
 import json
 import os
 
-out_path_base = "results/fulldataset_win128_out128_1e-06/"
+out_path_base = "/home/sescudero/emb2pfam/results/win128_out128_3e-04_1500filters/"
 
 # save a copy of this script 
 script_filename = os.path.basename(sys.argv[0])

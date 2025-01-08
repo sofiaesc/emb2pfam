@@ -58,8 +58,6 @@ class domCNNe(nn.Module):
 
         if self.voting_method == 'weighted_families':
             self.family_weights = nn.Parameter(tr.rand(len(model_dirs), len(categories)))
-        
-        self.fc_layer = nn.Linear(len(categories), len(categories))
 
     def fit(self):
         if self.voting_method == 'weighted_mean':
@@ -135,10 +133,6 @@ class domCNNe(nn.Module):
 
     def forward(self, batch):
         pred, _ = self.pred(batch)
-        
-        if self.fc_layer:
-            pred = self.fc_layer(pred)
-
         return pred
 
     def pred(self, batch):
@@ -171,4 +165,3 @@ class domCNNe(nn.Module):
             raise ValueError(f"Unknown voting method: {self.voting_method}")
 
         return pred, pred_bin
-
