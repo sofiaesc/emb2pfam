@@ -43,7 +43,7 @@ test_data = PFamDataset(f"{config['data_path']}test.csv",
                         only_seeds=config['only_seeds'], is_training=False)
 test_loader = DataLoader(test_data, batch_size=config['batch_size'], num_workers=1)
 
-net = domCNN(len(categories), lr=config['lr'], device=DEVICE, filters=config['filters'])
+net = domCNN(len(categories), lr=config['lr'], device=DEVICE)
 net.load_state_dict(tr.load(filename))
 net.eval()
 test_loss, test_errate, _, _, _, _, _, _, _ = net.pred(test_loader)

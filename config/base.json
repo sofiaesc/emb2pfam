@@ -1,7 +1,7 @@
 {
-    "window_len": 128,
-    "label_win_len": 128,
-    "lr": 4e-05,
+    "window_len": 32,
+    "label_win_len": 32,
+    "lr": 2e-05,
     "batch_size": 32,
     "nepoch": 500,
     "patience": 5,

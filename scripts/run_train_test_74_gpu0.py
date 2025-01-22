@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 # name of the experiment and output directory
-experiment = "win64_out64_4e-04"
+experiment = "win128_out128_4e-04"
 out_path_base = f"results/{experiment}_{str(datetime.now()).replace(' ', '-')}/"
 
 # Check if the directory already exists

@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 # name of the experiment and output directory
-experiment = "win32_out32_1e-04"
+experiment = "win32_out32_2e-05"
 out_path_base = f"results/{experiment}_{str(datetime.now()).replace(' ', '-')}/"
 
 # create directories (deletes the folder if it already exists)

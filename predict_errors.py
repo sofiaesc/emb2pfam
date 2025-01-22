@@ -40,7 +40,7 @@ summary_file = os.path.join(args.output, "test_predict_errors_summary.txt")
 
 res_name = os.path.join(args.output, "errors.csv")
 
-net = domCNN(nclasses=len(categories), device=DEVICE, filters=config['filters'])
+net = domCNN(nclasses=len(categories), device=DEVICE)
 net.load_state_dict(tr.load(filename))
 net.eval()
 

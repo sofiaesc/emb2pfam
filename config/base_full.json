@@ -1,10 +1,9 @@
 {
     "window_len": 128,
     "label_win_len": 128,
-    "lr": 3e-04,
+    "lr": 4e-04,
     "batch_size": 32,
     "nepoch": 500,
-    "filters": 1500,
     "patience": 5,
     "nworkers": 8,
     "only_seeds": true,

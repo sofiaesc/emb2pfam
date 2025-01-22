@@ -46,7 +46,7 @@ print("train", len(train_data), "dev", len(dev_data))
 train_loader = DataLoader(train_data, batch_size=config['batch_size'], shuffle=True, num_workers=config['nworkers'])
 dev_loader = DataLoader(dev_data, batch_size=config['batch_size'], num_workers=config['nworkers'])
 
-net = domCNN(len(categories), lr=config['lr'], device=DEVICE, filters=config['filters'])
+net = domCNN(len(categories), lr=config['lr'], device=DEVICE)
 if os.path.exists(filename):
     if config['continue_training'] == True:         # if we want to continue training from before.
         print(f"Loading model from {filename}")

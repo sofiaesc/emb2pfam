@@ -25,7 +25,9 @@ class domCNN(nn.Module):
         self.cnn.append(nn.AdaptiveMaxPool1d(1))
         self.cnn = nn.Sequential(*self.cnn)
 
-        self.fc = nn.Linear(filters, nclasses)
+        self.fc = nn.Linear(filters, nclasses) # filters, otracosa
+        # relu
+        # lineal        # algo, nclasses
 
         self.loss = nn.CrossEntropyLoss()
         self.optim = tr.optim.Adam([{"params": self.cnn.parameters(), "lr": lr},
